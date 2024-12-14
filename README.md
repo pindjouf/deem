@@ -1,16 +1,23 @@
 # Deem and Nets
 
 **Deem and Nets** is a primitive DNS implementation. The name was chosen at random, you could see it in multiple ways:
+
 - Say deem and nets fast and it sounds like DNS
 - See it as "Demand nets" since DNS places several demands on networks
 
-You can choose it means whatever.
+You can choose, it can mean whatever.
 
 ## Features
 
 - Parses the DNS message header (including flags and counts).
 - Server provides structured output to help visualize DNS query components.
 - Serves as a foundation for future expansions, such as resolving DNS queries and supporting various DNS record types.
+
+## Demo
+
+Here's an example of **Deem and Nets** in action:
+
+![Deem and Nets in Action](assets/screenshot.png)
 
 ## Directory Structure
 
