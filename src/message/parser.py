@@ -26,8 +26,8 @@ class Header(BaseModel):
 class Question(BaseModel):
     labels: List[DomainLabel]
     zero_byte_terminator: int
-    q_type: int
-    q_class: int
+    q_type: dict
+    q_class: dict
 
 class Query(BaseModel):
     header: Header
@@ -76,6 +76,9 @@ class rCodeToken:
 def hex_to_bin(hex_string: str) -> str:
     return bin(int(hex_string, 16))[2:].zfill(16)
 
+def hex_to_ascii(hex_string: str) -> str:
+    return bytes.fromhex(hex_string).decode('ascii')
+
 def parse_flags(flags: str) -> dict:
     opcode = OpcodeToken()
     rcode = rCodeToken()
@@ -94,34 +97,83 @@ def parse_flags(flags: str) -> dict:
 
     return data
 
-def pretty_print(header: Header, tokenized_flags, binary_flags, query):
-    print("\nDNS Query Analysis")
-    print("=" * 60)
-    print(f"Base Query: {query}")
-    print("\nDNS Header")
-    print("=" * 60)
-    print(f"Transaction ID: 0x{header.id.hex()} (bytes: {header.id})")
-    print("=" * 60)
-    print("Counts:")
-    print(f"  Questions: {header.question_count}")
-    print(f"  Answers: {header.answer_count}")
-    print(f"  Authority RRs: {header.authority_count}")
-    print(f"  Additional RRs: {header.additional_records_count}")
-    print("=" * 60)
-    print("")
-    print("Tokenized Flags:")
-    print("=" * 60)
-    print(f"Binary Flags: {binary_flags}")
-    
-    for key, value in tokenized_flags.items():
-        print(f"{key.replace('_', ' ').title():20}: {value['value']} - {value['meaning']}")
-    
-    print("=" * 60)
+def get_labels(question: str) -> List:
+    labels = list()
+    labels_substring = question[:-8]
+
+    while labels_substring != "":
+        length = int(labels_substring[:2], 16)
+        value = labels_substring[2:length*2+2]
+        if labels_substring[length*2:length*2+2] == "00":
+            break
+        else:
+            node = {'length': length, 'value': hex_to_ascii(value)}
+            labels.append(node)
+            node_string = labels_substring[:2] + value
+            labels_substring = labels_substring.replace(node_string, "")
+
+    return labels
+
+def get_type(type_substring: str) -> dict:
+    type_value = int(type_substring, 16)
+
+    type_token = ""
+    match type_value:
+        case 1:
+            type_token = "A (Address Record)"
+        case 2:
+            type_token = "NS (Name Server)"
+        case 5:
+            type_token = "CNAME (Canonical Name)"
+        case 6:
+            type_token = "SOA (Start of Authority)"
+        case 12:
+            type_token = "PTR (Pointer Record)"
+        case 15:
+            type_token = "MX (Mail Exchange)"
+        case 16:
+            type_token = "TXT (Text Record)"
+        case 28:
+            type_token = "AAAA (IPv6 Address Record)"
+        case 33:
+            type_token = "SRV (Service Locator)"
+        case 252:
+            type_token = "AXFR (Zone Transfer)"
+        case 255:
+            type_token = "ANY (Wildcard Match)"
+        case _:
+            type_token = "Unknown or unsupported type"
+
+    return {'value': type_value, 'meaning': type_token}
+
+
+def get_class(class_substring: str) -> dict:
+    class_value = int(class_substring, 16)
+
+    class_token = ""
+    match class_value:
+        case 1:
+            class_token = "IN (Internet)"
+        case 3:
+            class_token = "CH (Chaos)"
+        case 4:
+            class_token = "HS (Hesiod)"
+        case 255:
+            class_token = "ANY (Wildcard Match)"
+        case _:
+            class_token = "Unknown or unsupported class"
+
+    return {'value': class_value, 'meaning': class_token}
 
 def parser(query: str):
     flags_substring = query[4:8]
     binary_flags = hex_to_bin(flags_substring)
     tokenized_flags = parse_flags(binary_flags)
+
+    question_substring = query[24:]
+    labels = get_labels(question_substring)
+    q_type = get_type(question_substring[-8:-4])
+    q_class = get_class(question_substring[-4:])
 
     flags = Flags(
         qr=tokenized_flags['qr']['value'],
@@ -141,5 +193,15 @@ def parser(query: str):
         authority_count=int(query[16:20], 16),
         additional_records_count=int(query[20:24], 16)
     )
+    question = Question(
+        labels=labels,
+        zero_byte_terminator=question_substring[-10:-8],
+        q_type=q_type,
+        q_class=q_class
+    )
+    parsed_query = Query(
+        header=header,
+        question=question
+    )
 
-    pretty_print(header, tokenized_flags, binary_flags, query)
+    return parsed_query
