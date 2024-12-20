@@ -120,27 +120,27 @@ def get_type(type_substring: str) -> dict:
     type_token = ""
     match type_value:
         case 1:
-            type_token = "A (Address Record)"
+            type_token = "A"
         case 2:
-            type_token = "NS (Name Server)"
+            type_token = "NS"
         case 5:
-            type_token = "CNAME (Canonical Name)"
+            type_token = "CNAME"
         case 6:
-            type_token = "SOA (Start of Authority)"
+            type_token = "SOA"
         case 12:
-            type_token = "PTR (Pointer Record)"
+            type_token = "PTR"
         case 15:
-            type_token = "MX (Mail Exchange)"
+            type_token = "MX"
         case 16:
-            type_token = "TXT (Text Record)"
+            type_token = "TXT"
         case 28:
-            type_token = "AAAA (IPv6 Address Record)"
+            type_token = "AAAA"
         case 33:
-            type_token = "SRV (Service Locator)"
+            type_token = "SRV"
         case 252:
-            type_token = "AXFR (Zone Transfer)"
+            type_token = "AXFR"
         case 255:
-            type_token = "ANY (Wildcard Match)"
+            type_token = "ANY"
         case _:
             type_token = "Unknown or unsupported type"
 
@@ -153,13 +153,13 @@ def get_class(class_substring: str) -> dict:
     class_token = ""
     match class_value:
         case 1:
-            class_token = "IN (Internet)"
+            class_token = "IN"
         case 3:
-            class_token = "CH (Chaos)"
+            class_token = "CH"
         case 4:
-            class_token = "HS (Hesiod)"
+            class_token = "HS"
         case 255:
-            class_token = "ANY (Wildcard Match)"
+            class_token = "ANY"
         case _:
             class_token = "Unknown or unsupported class"
 
