@@ -22,7 +22,7 @@ A primitive, hackable DNS server implementation. No bloat, no unnecessary featur
 
 ## Features
 
-- ✓ Bare DNS protocol implementation
+- ✓ Primitive DNS protocol implementation
 - ✓ Clean A record resolution
 - ✓ NXDOMAIN handling for unsupported queries
 - ✓ Zone file parsing
