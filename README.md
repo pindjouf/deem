@@ -1,105 +1,96 @@
-# Deem and Nets
+# D33M DNS 
 
-**Deem and Nets** is a primitive DNS implementation. The name was chosen at random, you could see it in multiple ways:
+> [!IMPORTANT]
+> This is a primitive implementation. It's functional but minimalist. Perfect for learning and hacking, but probably not what you want for your production environment...
 
-- Say deem and nets fast and it sounds like DNS
-- See it as "Demand nets" since DNS places several demands on networks
+### A hackable DNS implementation for those who dare to run their own nameservers
 
-You can choose, it can mean whatever.
+```
+ ________  _______   _______   _____ ______           ________  ________   ________     
+|\   ___ \|\  ___ \ |\  ___ \ |\   _ \  _   \        |\   ___ \|\   ___  \|\   ____\    
+\ \  \_|\ \ \   __/|\ \   __/|\ \  \\\__\ \  \       \ \  \_|\ \ \  \\ \  \ \  \___|    
+ \ \  \ \\ \ \  \_|/_\ \  \_|/_\ \  \\|__| \  \       \ \  \ \\ \ \  \\ \  \ \_____  \  
+  \ \  \_\\ \ \  \_|\ \ \  \_|\ \ \  \    \ \  \       \ \  \_\\ \ \  \\ \  \|____|\  \ 
+   \ \_______\ \_______\ \_______\ \__\     \ \__\       \ \_______\ \__\\ \__\____\_\  \
+    \|_______|\|_______|\|_______|\|__|      \|__|        \|_______|\|__| \|__|\_________\
+                                                                              \|_________|
+```
+
+## What is this?
+
+A primitive, hackable DNS server implementation. No bloat, no unnecessary features - just pure DNS protocol at its core. Perfect for learning, experimenting, or running your own nameserver.
 
 ## Features
 
-- Parses the DNS message header (including flags and counts).
-- Server provides structured output to help visualize DNS query components.
-- Serves as a foundation for future expansions, such as resolving DNS queries and supporting various DNS record types.
+- ✓ Bare DNS protocol implementation
+- ✓ Clean A record resolution
+- ✓ NXDOMAIN handling for unsupported queries
+- ✓ Zone file parsing
+- ✓ Proper UDP socket handling
+- ✓ Minimal external dependencies*
 
-## Demo
+## Quick Start
 
-Here's an example of **Deem and Nets** in action:
-
-![Deem and Nets in Action](assets/screenshot.png)
-
-## Directory Structure
-
-```
-deem-and-nets
-├── README.md              # Project documentation
-├── requirements.txt       # Python dependencies
-└── src/                   # Source code
-    ├── message/
-    │   ├── builder.py     # Future DNS message builder
-    │   ├── parser.py      # Current DNS message parser
-    ├── records/
-    │   └── types.py       # DNS record types (e.g., A, CNAME, etc.)
-    ├── resolver/
-    │   ├── cache.py       # Future caching mechanism
-    │   └── resolver.py    # Future DNS resolver logic
-    └── server.py          # UDP DNS server
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.12+ (as indicated by the virtual environment)
-- `pip` for installing dependencies
-
-### Installation
-
-1. Clone the repository:
+1. Clone this repo
 
 ```bash
-git clone https://github.com/pindjouf/deem-and-nets.git
-cd deem-and-nets
+git clone https://github.com/pindjouf/deem.git
 ```
 
-2. Set up a virtual environment:
+2. Create your zone files in `/etc/deem/`
 
 ```bash
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
+mkdir -p /etc/deem
+touch /etc/deem/example.com.zone
 ```
 
-### Usage
-
-1. Start the UDP server:
+3. Run the server
 
 ```bash
-python src/server.py
+python server.py
 ```
 
-2. Send a DNS query to the server:
+4. Test it
+
+```bash
+nslookup -port=53053 example.com 127.0.0.1
+```
+
+or 
 
 ```bash
 dig @127.0.0.1 -p 53053 example.com
 ```
 
-or
+## Zone File Format
 
-```bash
-nslookup -port=53053 -querytype=A example.com 127.0.0.1
+```plaintext
+$TTL 86400
+@       IN      SOA     ns1.example.com. admin.example.com. (
+                        2023121801 ; Serial
+                        3600       ; Refresh
+                        1800       ; Retry
+                        604800     ; Expire
+                        86400 )    ; Minimum TTL
+
+@       IN      NS      ns1.example.com.
+@       IN      A       93.184.216.34
+www     IN      A       93.184.216.34
 ```
 
-I recommend `nslookup` since it provides valid flags, unlike `dig`.
+## Current Limitations
 
-3. Analyze the parsed DNS header output.
+- Only handles A records (IPv4)
+- No caching
+- No recursive resolution
+- Local zone files only
 
-### Current Limitations
+## Potential Extensions
 
-- Only parses the DNS message header.
-- No support for response generation or DNS record resolution yet.
-
-## Roadmap
-
-- Add DNS response generation.
-- Implement caching for better performance.
-- Expand support for DNS record types (A, AAAA, CNAME, etc.).
-- Implement advanced features like recursion and authoritative responses.
-
-## Contributing
-
-Contributions are welcome! Feel free to open issues or submit pull requests.
+- [ ] Cache implementation
+- [ ] Recursive resolver
+- [ ] AAAA record support
+- [ ] Additional record types (MX, TXT, etc.)
 
 ## License
 

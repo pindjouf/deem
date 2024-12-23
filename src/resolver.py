@@ -1,10 +1,7 @@
-from pretty import print_response
 from enum import Enum
-from parser import *
+from src.parser import *
 import os
 import re
-
-query = "123401000001000000000000076578616d706c6503636F6D0000010001"
 
 class Answer(BaseModel):
     name: str
@@ -16,9 +13,8 @@ class Answer(BaseModel):
 class Response(BaseModel):
     header: Header
     question:Question
-    answer: Answer
+    answer: Optional[Answer] = None
     authority: int
-    # additional: int
 
 class RR(BaseModel):
     name: str
@@ -204,7 +200,7 @@ def parse_zone_file(domain_name: str) -> dict:
                         ns = NS(
                             ns_class=record_tokens[0],
                             ns_type=record_tokens[1],
-                            data=record_tokens[2][:-1]
+                            data=record_tokens[2]
                         )
                         ns_records.append(ns)
                 elif len(record_tokens) > 3:
@@ -212,7 +208,7 @@ def parse_zone_file(domain_name: str) -> dict:
                         name=record_tokens[0],
                         rr_class=record_tokens[1],
                         rr_type=record_tokens[2],
-                        data=record_tokens[-1][:-1]
+                        data=record_tokens[-1]
                     )
                     resource_records.append(rr)
 
@@ -243,35 +239,56 @@ def parse_zone_file(domain_name: str) -> dict:
 def resolver(query: Query):
     query = parser(query)
     query.header.flags.qr = 1
+    
+    if query.question.q_type['value'] != 1:
+        query.header.flags.response_code = 3
+        return Response(
+            header=query.header,
+            question=query.question,
+            answer=None,
+            authority=0
+        )
 
     domain_name = get_domain_name(query.question.labels)
-    zone_file = parse_zone_file(domain_name)
-
-    def get_ip(zone_file):
-        for record in zone_file.resource_records:
-            if record.rr_type == query.question.q_type['meaning'] and record.rr_class == query.question.q_class['meaning']:
-                rdata = record.data
-                return rdata
-        else:
+    try:
+        zone_file = parse_zone_file(domain_name)
+        
+        def get_ip(zone_file):
+            for record in zone_file.resource_records:
+                if len(query.question.labels) <= 2:
+                    if record.name != "@":
+                        continue
+                    if record.rr_type == query.question.q_type['meaning'] and record.rr_class == query.question.q_class['meaning']:
+                        rdata = record.data
+                        return rdata
+                else:
+                    if record.name == query.question.labels[0].value and record.rr_type == query.question.q_type['meaning'] and record.rr_class == query.question.q_class['meaning']:
+                        rdata = record.data
+                        return rdata
             raise ValueError(f"No matching record found for {domain_name}")
 
-    rdata = get_ip(zone_file)
+        rdata = get_ip(zone_file)
 
-    answer = Answer(
-        name=zone_file.soa_record.domain_name,
-        a_type=query.question.q_type['value'],
-        a_class=query.question.q_class['value'],
-        ttl=zone_file.ttl,
-        rdata=rdata,
-    )
+        answer = Answer(
+            name=zone_file.soa_record.domain_name,
+            a_type=query.question.q_type['value'],
+            a_class=query.question.q_class['value'],
+            ttl=zone_file.ttl,
+            rdata=rdata,
+        )
 
-    response = Response(
-        header=query.header,
-        question=query.question,
-        answer=answer,
-        authority=len(zone_file.ns_records)
-    )
-
-    return response
-
-print_response(resolver(query))
+        return Response(
+            header=query.header,
+            question=query.question,
+            answer=answer,
+            authority=len(zone_file.ns_records),
+        )
+        
+    except (FileNotFoundError, ValueError):
+        query.header.flags.response_code = 3
+        return Response(
+            header=query.header,
+            question=query.question,
+            answer=None,
+            authority=0
+        )
