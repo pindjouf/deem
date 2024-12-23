@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class DomainLabel(BaseModel):
     length: int
@@ -104,7 +104,7 @@ def get_labels(question: str) -> List:
     while labels_substring != "":
         length = int(labels_substring[:2], 16)
         value = labels_substring[2:length*2+2]
-        if labels_substring[length*2:length*2+2] == "00":
+        if length == 0:
             break
         else:
             node = {'length': length, 'value': hex_to_ascii(value)}
@@ -115,55 +115,62 @@ def get_labels(question: str) -> List:
     return labels
 
 def get_type(type_substring: str) -> dict:
-    type_value = int(type_substring, 16)
-
-    type_token = ""
-    match type_value:
-        case 1:
-            type_token = "A (Address Record)"
-        case 2:
-            type_token = "NS (Name Server)"
-        case 5:
-            type_token = "CNAME (Canonical Name)"
-        case 6:
-            type_token = "SOA (Start of Authority)"
-        case 12:
-            type_token = "PTR (Pointer Record)"
-        case 15:
-            type_token = "MX (Mail Exchange)"
-        case 16:
-            type_token = "TXT (Text Record)"
-        case 28:
-            type_token = "AAAA (IPv6 Address Record)"
-        case 33:
-            type_token = "SRV (Service Locator)"
-        case 252:
-            type_token = "AXFR (Zone Transfer)"
-        case 255:
-            type_token = "ANY (Wildcard Match)"
-        case _:
-            type_token = "Unknown or unsupported type"
-
-    return {'value': type_value, 'meaning': type_token}
-
+    try:
+        type_value = int(type_substring, 16)
+        
+        type_token = ""
+        match type_value:
+            case 1:
+                type_token = "A"
+            case 2:
+                type_token = "NS"
+            case 5:
+                type_token = "CNAME"
+            case 6:
+                type_token = "SOA"
+            case 12:
+                type_token = "PTR"
+            case 15:
+                type_token = "MX"
+            case 16:
+                type_token = "TXT"
+            case 28:
+                type_token = "AAAA"
+            case 33:
+                type_token = "SRV"
+            case 252:
+                type_token = "AXFR"
+            case 255:
+                type_token = "ANY"
+            case _:
+                type_token = "A"
+                type_value = 1
+        
+        return {'value': type_value, 'meaning': type_token}
+    except ValueError:
+        return {'value': 1, 'meaning': "A"}
 
 def get_class(class_substring: str) -> dict:
-    class_value = int(class_substring, 16)
-
-    class_token = ""
-    match class_value:
-        case 1:
-            class_token = "IN (Internet)"
-        case 3:
-            class_token = "CH (Chaos)"
-        case 4:
-            class_token = "HS (Hesiod)"
-        case 255:
-            class_token = "ANY (Wildcard Match)"
-        case _:
-            class_token = "Unknown or unsupported class"
-
-    return {'value': class_value, 'meaning': class_token}
+    try:
+        class_value = int(class_substring, 16)
+        
+        class_token = ""
+        match class_value:
+            case 1:
+                class_token = "IN"
+            case 3:
+                class_token = "CH"
+            case 4:
+                class_token = "HS"
+            case 255:
+                class_token = "ANY"
+            case _:
+                class_token = "IN"
+                class_value = 1
+        
+        return {'value': class_value, 'meaning': class_token}
+    except ValueError:
+        return {'value': 1, 'meaning': "IN"}
 
 def parser(query: str):
     flags_substring = query[4:8]
@@ -174,6 +181,8 @@ def parser(query: str):
     labels = get_labels(question_substring)
     q_type = get_type(question_substring[-8:-4])
     q_class = get_class(question_substring[-4:])
+
+    zero_byte = int(question_substring[-10:-8], 16)
 
     flags = Flags(
         qr=tokenized_flags['qr']['value'],
@@ -195,7 +204,7 @@ def parser(query: str):
     )
     question = Question(
         labels=labels,
-        zero_byte_terminator=question_substring[-10:-8],
+        zero_byte_terminator=zero_byte,
         q_type=q_type,
         q_class=q_class
     )
